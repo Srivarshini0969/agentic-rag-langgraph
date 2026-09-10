@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>Agentic RAG Workflow Animation</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #fafafa;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .node {
+    fill: #ffffff;
+    stroke: #999;
+    stroke-width: 2;
+    rx: 10;
+  }
+
+  .highlight {
+    stroke: #2e86ff !important;
+    stroke-width: 4 !important;
+    animation: glow 1.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    from { fill: #e9f2ff; }
+    to { fill: #cfe4ff; }
+  }
+
+  .arrow {
+    stroke: #555;
+    stroke-width: 2;
+    marker-end: url(#arrowhead);
+    opacity: 0.4;
+  }
+
+  .arrow-active {
+    stroke: #2e86ff !important;
+    stroke-width: 3 !important;
+    opacity: 1 !important;
+  }
+
+  text {
+    font-size: 14px;
+    pointer-events: none;
+  }
+
+  #controls {
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    margin: 5px;
+    cursor: pointer;
+    background: #2e86ff;
+    color: white;
+  }
+
+  button:hover {
+    background: #1a5fcc;
+  }
+
+  .secondary {
+    background: #6c757d;
+  }
+
+  .secondary:hover {
+    background: #4e545a;
+  }
+</style>
+</head>
+
+<body>
+
+<div>
+  <h2 style="text-align:center;">Agentic RAG – LangGraph Execution Animation</h2>
+
+  <!-- SVG Workflow -->
+  <svg id="workflow" width="1100" height="650">
+
+    <!-- Arrowhead definition -->
+    <defs>
+      <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto">
+        <polygon points="0 0, 6 3, 0 6" fill="#555"/>
+      </marker>
+    </defs>
+
+    <!-- NODES -->
+
+    <!-- domain_check -->
+    <rect id="domain_check" class="node" x="350" y="40" width="250" height="60"></rect>
+    <text x="475" y="75" text-anchor="middle">domain_check (Guardrail)</text>
+
+    <!-- out_of_domain -->
+    <rect id="out_domain" class="node" x="700" y="40" width="250" height="60"></rect>
+    <text x="825" y="75" text-anchor="middle">Out-of-Domain Path</text>
+
+    <!-- retrieve -->
+    <rect id="retrieve" class="node" x="350" y="150" width="250" height="60"></rect>
+    <text x="475" y="185" text-anchor="middle">Retrieve (Top-k Documents)</text>
+
+    <!-- reason -->
+    <rect id="reason" class="node" x="350" y="260" width="250" height="60"></rect>
+    <text x="475" y="295" text-anchor="middle">Reason (Sufficient?)</text>
+
+    <!-- retrieve_again -->
+    <rect id="retrieve_again" class="node" x="40" y="260" width="250" height="60"></rect>
+    <text x="165" y="295" text-anchor="middle">Retrieve Again (Multi-Hop)</text>
+
+    <!-- respond -->
+    <rect id="respond" class="node" x="350" y="370" width="250" height="60"></rect>
+    <text x="475" y="405" text-anchor="middle">Generate Answer</text>
+
+    <!-- reflect -->
+    <rect id="reflect" class="node" x="350" y="480" width="250" height="60"></rect>
+    <text x="475" y="515" text-anchor="middle">Reflect & Suggest</text>
+
+    <!-- END -->
+    <rect id="end" class="node" x="350" y="580" width="250" height="40"></rect>
+    <text x="475" y="605" text-anchor="middle">END</text>
+
+    <!-- ARROWS -->
+
+    <!-- domain_check -> out_of_domain -->
+    <line id="arrow_DC_OOD" class="arrow" x1="600" y1="70" x2="700" y2="70"></line>
+
+    <!-- domain_check -> retrieve -->
+    <line id="arrow_DC_R1" class="arrow" x1="475" y1="100" x2="475" y2="150"></line>
+
+    <!-- retrieve -> reason -->
+    <line id="arrow_R1_R2" class="arrow" x1="475" y1="210" x2="475" y2="260"></line>
+
+    <!-- reason -> retrieve_again (insufficient) -->
+    <line id="arrow_R2_Ra" class="arrow" x1="350" y1="290" x2="290" y2="290"></line>
+    <line id="arrow_R2_Ra2" class="arrow" x1="290" y1="290" x2="290" y2="290"></line>
+    <line id="arrow_R2_Ra3" class="arrow" x1="290" y1="290" x2="290" y2="290"></line>
+    <line id="arrow_R2_Ra_final" class="arrow" x1="290" y1="290" x2="290" y2="290"></line>
+    <line id="arrow_R2_Ra_line" class="arrow" x1="290" y1="290" x2="290" y2="290"></line>
+
+    <line id="arrow_reason_retrieve_again" class="arrow" x1="350" y1="290" x2="290" y2="290"></line>
+    <text x="300" y="260" fill="#333" font-size="12">insufficient</text>
+
+    <!-- retrieve_again -> respond -->
+    <line id="arrow_Ra_R3" class="arrow" x1="290" y1="290" x2="350" y2="290"></line>
+    <line id="arrow_Ra_R3_line" class="arrow" x1="290" y1="290" x2="350" y2="290"></line>
+
+    <!-- reason -> respond (sufficient) -->
+    <line id="arrow_R2_R3" class="arrow" x1="475" y1="320" x2="475" y2="370"></line>
+    <text x="490" y="335" fill="#333" font-size="12">sufficient</text>
+
+    <!-- respond -> reflect -->
+    <line id="arrow_R3_R4" class="arrow" x1="475" y1="430" x2="475" y2="480"></line>
+
+    <!-- reflect -> END -->
+    <line id="arrow_R4_END" class="arrow" x1="475" y1="540" x2="475" y2="580"></line>
+
+  </svg>
+
+  <!-- CONTROLS -->
+  <div id="controls">
+    <button onclick="runInDomain()">Play In-Domain</button>
+    <button class="secondary" onclick="runOutDomain()">Play Out-of-Domain</button>
+    <button onclick="resetAnimation()">Reset</button>
+  </div>
+
+</div>
+
+<script>
+function clearHighlights() {
+  document.querySelectorAll(".node").forEach(n => n.classList.remove("highlight"));
+  document.querySelectorAll(".arrow").forEach(a => a.classList.remove("arrow-active"));
+}
+
+function resetAnimation() {
+  clearHighlights();
+}
+
+function highlight(nodeId, arrowId) {
+  clearHighlights();
+  if (nodeId) document.getElementById(nodeId).classList.add("highlight");
+  if (arrowId) document.getElementById(arrowId).classList.add("arrow-active");
+}
+
+function runInDomain() {
+  resetAnimation();
+  const steps = [
+    ["domain_check", null],
+    ["retrieve", "arrow_DC_R1"],
+    ["reason", "arrow_R1_R2"],
+    ["retrieve_again", "arrow_reason_retrieve_again"],
+    ["respond", "arrow_Ra_R3"],
+    ["reflect", "arrow_R3_R4"],
+    ["end", "arrow_R4_END"]
+  ];
+
+  let i = 0;
+  function step() {
+    if (i >= steps.length) return;
+    highlight(steps[i][0], steps[i][1]);
+    i++;
+    setTimeout(step, 1500);
+  }
+  step();
+}
+
+function runOutDomain() {
+  resetAnimation();
+  const steps = [
+    ["domain_check", null],
+    ["out_domain", "arrow_DC_OOD"],
+    ["end", null]
+  ];
+
+  let i = 0;
+  function step() {
+    if (i >= steps.length) return;
+    highlight(steps[i][0], steps[i][1]);
+    i++;
+    setTimeout(step, 1500);
+  }
+  step();
+}
+</script>
+
+</body>
+</html>

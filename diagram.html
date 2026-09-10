@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Agentic RAG – Node-Level System Diagram</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f7f7f7;
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+  }
+
+  svg {
+    background: #ffffff;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+  }
+
+  .node {
+    fill: #ffffff;
+    stroke: #555;
+    stroke-width: 2;
+    rx: 10;
+  }
+
+  .label {
+    font-size: 14px;
+    fill: #222;
+    pointer-events: none;
+  }
+
+  .arrow {
+    stroke: #444;
+    stroke-width: 2;
+    marker-end: url(#arrowhead);
+  }
+
+  .small-text {
+    font-size: 12px;
+    fill: #333;
+  }
+</style>
+</head>
+
+<body>
+
+<svg width="1100" height="1100">
+
+  <!-- Arrowhead -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto">
+      <polygon points="0 0, 6 3, 0 6" fill="#444"/>
+    </marker>
+  </defs>
+
+  <!-- User UI -->
+  <rect x="350" y="20" width="400" height="60" class="node"></rect>
+  <text x="550" y="55" text-anchor="middle" class="label">
+    User UI (React, App.jsx)
+  </text>
+
+  <!-- Arrow to Flask -->
+  <line x1="550" y1="80" x2="550" y2="130" class="arrow"></line>
+  <text x="560" y="110" class="small-text">POST /agentic-rag</text>
+
+  <!-- Flask API -->
+  <rect x="350" y="130" width="400" height="60" class="node"></rect>
+  <text x="550" y="165" text-anchor="middle" class="label">
+    Flask API (runnable_with_history)
+  </text>
+
+  <!-- Arrow to domain_check -->
+  <line x1="550" y1="190" x2="550" y2="250" class="arrow"></line>
+  <text x="560" y="220" class="small-text">query, session_id</text>
+
+  <!-- domain_check -->
+  <rect x="350" y="250" width="400" height="60" class="node"></rect>
+  <text x="550" y="285" text-anchor="middle" class="label">
+    domain_check (LLM guardrail)
+  </text>
+
+  <!-- Out-of-domain arrow -->
+  <line x1="750" y1="280" x2="900" y2="280" class="arrow"></line>
+  <text x="820" y="265" class="small-text">out-of-domain</text>
+
+  <!-- Out-of-domain result -->
+  <rect x="900" y="220" width="280" height="120" class="node"></rect>
+  <text x="1040" y="250" text-anchor="middle" class="small-text">
+    answer: “I could not find this information
+  </text>
+  <text x="1040" y="268" text-anchor="middle" class="small-text">
+    in the provided materials. This assistant
+  </text>
+  <text x="1040" y="286" text-anchor="middle" class="small-text">
+    only answers Rogers-related topics…”
+  </text>
+  <text x="1040" y="304" text-anchor="middle" class="small-text">
+    context: "" (no retrieval)
+  </text>
+
+  <!-- Arrow to retrieve -->
+  <line x1="550" y1="310" x2="550" y2="360" class="arrow"></line>
+  <text x="560" y="335" class="small-text">in-domain</text>
+
+  <!-- retrieve -->
+  <rect x="350" y="360" width="400" height="60" class="node"></rect>
+  <text x="550" y="395" text-anchor="middle" class="label">
+    retrieve (FAISS + MMR)
+  </text>
+
+  <!-- Arrow to reason -->
+  <line x1="550" y1="420" x2="550" y2="480" class="arrow"></line>
+
+  <!-- reason -->
+  <rect x="350" y="480" width="400" height="60" class="node"></rect>
+  <text x="550" y="515" text-anchor="middle" class="label">
+    reason (LLM check: sufficient?)
+  </text>
+
+  <!-- insufficient path arrow -->
+  <line x1="350" y1="510" x2="150" y2="510" class="arrow"></line>
+  <text x="260" y="495" class="small-text">insufficient</text>
+
+  <!-- retrieve_again -->
+  <rect x="40" y="480" width="220" height="60" class="node"></rect>
+  <text x="150" y="515" text-anchor="middle" class="label">
+    retrieve_again (2nd pass)
+  </text>
+
+  <!-- Arrow back to respond -->
+  <line x1="260" y1="510" x2="350" y2="510" class="arrow"></line>
+
+  <!-- Sufficient arrow -->
+  <line x1="550" y1="540" x2="550" y2="600" class="arrow"></line>
+  <text x="560" y="570" class="small-text">sufficient</text>
+
+  <!-- respond -->
+  <rect x="350" y="600" width="400" height="60" class="node"></rect>
+  <text x="550" y="635" text-anchor="middle" class="label">
+    respond (Gemini RAG)
+  </text>
+
+  <!-- Arrow to reflect -->
+  <line x1="550" y1="660" x2="550" y2="720" class="arrow"></line>
+
+  <!-- reflect -->
+  <rect x="350" y="720" width="400" height="60" class="node"></rect>
+  <text x="550" y="755" text-anchor="middle" class="label">
+    reflect (follow-up generation)
+  </text>
+
+  <!-- Arrow to Flask/API output -->
+  <line x1="550" y1="780" x2="550" y2="840" class="arrow"></line>
+
+  <!-- Final output box -->
+  <rect x="300" y="840" width="500" height="80" class="node"></rect>
+  <text x="550" y="875" text-anchor="middle" class="label">
+    Flask → JSON → React UI
+  </text>
+  <text x="550" y="895" text-anchor="middle" class="small-text">
+    { answer, facts, follow-ups }
+  </text>
+
+</svg>
+
+</body>
+</html>

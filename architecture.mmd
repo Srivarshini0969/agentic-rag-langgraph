@@ -1,0 +1,48 @@
+%% File: architecture.mmd
+
+flowchart TD
+
+    subgraph UI["React Frontend (agentic-rag-ui)"]
+        A[User Query]
+        F[Follow-up Buttons]
+    end
+
+    subgraph API["Flask API (langgraph-server)"]
+        B[/POST /agentic-rag/]
+        H[SQLite Memory<br/>SQLChatMessageHistory]
+    end
+
+    subgraph Graph["LangGraph Workflow"]
+        C[domain_check<br/>Gemini Classifier]
+        D[retrieve<br/>FAISS + MMR]
+        E[reason<br/>Is context sufficient?]
+        I[retrieve_again<br/>Additional Pass]
+        J[respond<br/>Gemini RAG]
+        K[reflect<br/>Follow-up Generator]
+    end
+
+    subgraph Data["Data & Vector DB"]
+        X[(FAISS Index)]
+        Y[(info.txt)]
+    end
+
+    A --> B
+    B --> C
+
+    C -->|in-domain| D
+    C -->|out-of-domain| J
+
+    D --> X
+    D --> E
+
+    E -->|sufficient| J
+    E -->|insufficient| I
+    I --> J
+
+    J --> K
+    K --> F
+
+    J --> H
+    K --> H
+
+    Y --> X

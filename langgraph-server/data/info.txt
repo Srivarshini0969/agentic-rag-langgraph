@@ -1,0 +1,159 @@
+# Rogers Customer Service FAQ Guide
+
+## Page 1: Account and Billing Inquiries
+
+### Q1: How can I view and pay my bill?
+
+A: The easiest way to manage your bill is through the **MyRogers** account:
+
+* Online: Sign in to your MyRogers account on the website. You can view your current bill, past bills (up to 18 months), make a one-time payment, or set up Automatic Payments.
+* MyRogers App: Open the app and sign in. You can quickly view your balance, due date, and make payments.
+
+Other Payment Methods: You can also pay through online banking (add Rogers as a payee using your 12-digit account number), by phone, or by mail.
+
+### Q2: Why is my first bill higher than expected?
+
+A: Your first bill often includes one-time and partial charges that cover different periods:
+
+* One-time Service Setup Fee (SSF): A one-time fee, typically $80.00 plus taxes, is applied for new activations or hardware upgrades.
+* Partial Month Charges: You are billed for the service from the date of activation up to your regular billing cycle date.
+* Advance Charges: You are also billed for the next full month of service in advance.
+
+Action: Review the detailed breakdown on your first bill in MyRogers under "Current Charges."
+
+### Q3: What should I do if I have a charge on my bill I don't understand?
+
+A:
+
+1. Check the Details: Sign in to MyRogers (or MyRogers (Shaw) if applicable) and view the detailed PDF of your bill. Charges are usually listed clearly under "Current Charges." Look for things like:
+    * Data Add-Ons or Overage Fees (if you exceeded your plan's limit).
+    * Long-Distance Charges or Roam Like Home fees from travel.
+    * Equipment Rental/Financing fees.
+2. Contact Support: If the charge still seems incorrect, you can:
+    * Use the Chat feature in the MyRogers app or online.
+    * Call Customer Service to initiate a bill dispute.
+
+### Q4: How do I update my payment information or set up/cancel automatic payments?
+
+A: This is best done as a self-serve transaction in your online account:
+
+1. Sign in to MyRogers.
+2. Go to the Billing & Payment section.
+3. Look for Payment Method or Set up Automatic Payments to update your credit card or bank account details.
+
+Note: If you remove automatic payments, you may lose any associated discounts (e.g., a typical $10/month discount).
+
+### Q5: I am moving. How do I transfer my services to a new address?
+
+A: You should notify Rogers as soon as possible, ideally 30 days before your move date, to ensure a smooth transition:
+
+1. Contact Rogers: Call the dedicated Moving Team or use the self-serve options on the website/app for moving home services (Internet, TV, Home Phone).
+2. Confirm Services: Rogers will confirm service availability at your new address and schedule a technician appointment if necessary for installation.
+3. Return Equipment: If your new address uses different technology or services, you may need to return your existing equipment. Rogers will provide instructions and shipping labels.
+
+---
+
+## Page 2: Services and Technical Support
+
+### Q6: I have no service (no dial tone, no internet, no TV). What is the first step?
+
+A: Your first step should be to check for local outages:
+
+1. Check the Network Status: Visit the Rogers Network and Outage Hub online or use the MyRogers app to see if there are any reported service issues or outages in your specific area.
+2. Restart Your Equipment: For Internet, TV, or Home Phone issues, try a power cycle:
+    * Unplug the power cord from the modem, TV box, or phone terminal.
+    * Wait about 60 seconds.
+    * Plug the power cord back in. Wait 5-10 minutes for the equipment to fully restart and connect to the network.
+3. Still No Service: If the network status is clear and a restart didn't help, contact Technical Support via the MyRogers app chat (available 24/7) or by phone.
+
+### Q7: My Wi-Fi signal is weak or slow. How can I improve my internet performance?
+
+A: A weak Wi-Fi signal is often due to the home environment, not the internet line itself. Try the following:
+
+* Router Placement: Ensure your modem/router is placed in a central, open location, off the floor, away from concrete walls, metal objects, and large appliances (microwaves, cordless phones).
+* Interference: Check for other electronics that might interfere with your signal (especially devices using 2.4 GHz frequency).
+* Restart Regularly: Power-cycle your modem/router once a month to clear its memory and refresh the connection.
+* Use the App: Use the Ignite WiFi Hub app (for Rogers Ignite customers) to run diagnostics, test speeds, and optimize your network.
+* Consider a Mesh Network: If you have a large home, consider adding Rogers Wi-Fi Pods or a mesh network to extend coverage.
+
+### Q8: How do I troubleshoot issues with my TV service (e.g., freezing, missing channels)?
+
+A:
+
+1. Restart Your TV Box: Unplug the power cord from your Ignite TV box, wait 60 seconds, and plug it back in.
+2. Check Connections: Ensure all cables (coaxial, HDMI) are securely connected to the TV box and the wall outlet.
+3. Refresh Your Channel Listings: This can often be done through the MyRogers app or website.
+4. Still Having Issues: If the problem persists, contact Technical Support.
+
+### Q9: How can I change my TV package or add/remove channels (Flex Channels)?
+
+A: Most changes to your TV package or channels can be managed easily online:
+
+1. Sign in to MyRogers.
+2. Navigate to the My Services section and select your TV service.
+3. Follow the prompts to modify your package or exchange your Flex Channels (this is usually a self-serve-only transaction).
+
+Note: Making changes to your package may affect your overall monthly price and promotional discounts.
+
+### Q10: What are the main ways to contact Rogers Customer Service?
+
+A: Rogers offers several ways to get support:
+
+| Contact Method | Purpose | Availability |
+| :--- | :--- | :--- |
+| MyRogers App / Website Chat | Quick questions, technical support (24/7), general concerns. | 24/7 (Tech Support) |
+| Phone | Billing inquiries, technical issues, service changes. | Mon-Sat (Varies by department) |
+| In-Store | Device support, purchases, returns, plan changes. | During store hours. |
+| Social Media | General inquiries and sharing concerns. | Varies. |
+
+*For phone numbers specific to your service (Mobility, Residential, Business), check the official Rogers website's 'Contact Us' page.*
+
+---
+
+## Page 3: Device and Mobility Support
+
+### Q11: How do I activate a new phone or SIM card?
+
+A:
+
+* New Device/SIM with New Line: The device or SIM card usually comes with activation instructions. You can often activate it online through a dedicated activation page on the Rogers website.
+* eSIM: You can request to switch your physical SIM card to an eSIM directly through the MyRogers app or website's self-serve options.
+* Transferring a Number (Port-in): If you are keeping a number from another provider, Rogers will manage the transfer process. Do NOT cancel your old service yourself; Rogers will initiate the cancellation upon successful transfer.
+
+### Q12: I am travelling. How does 'Roam Like Home' work?
+
+A:
+
+* Automatic Enrollment: Most Rogers customers are automatically enrolled in Roam Like Home.
+* How it Works: For a flat daily fee (which varies by zone), you can use the talk, text, and data included in your monthly plan while traveling in eligible destinations.
+* Billing: The daily fee is only charged on the days you actively use your device (make a call, send a text, or use data) in the eligible zone. It is capped monthly.
+* Before You Go: Always check the current daily fee and eligible countries on the Rogers website before your trip.
+
+### Q13: What should I do if my phone is lost or stolen?
+
+A: Act immediately to prevent unauthorized charges:
+
+1. Report it: Sign in to the MyRogers app or call Rogers Customer Service immediately to report the device as lost or stolen.
+2. Suspend Service: Rogers will suspend your line to prevent unauthorized usage.
+3. Device Protection: If you have Device Protection, you can file a claim to get a replacement device (subject to deductible and claim limits).
+4. Security Measures: Use your phone's built-in features (e.g., Find My iPhone, Google Find My Device) to try and locate or remotely wipe the device.
+
+### Q14: How does the Device Financing (and Save & Return program) work?
+
+A:
+
+* Device Financing: The cost of your device is split into monthly payments over a 24-month term and added to your bill. Once the term ends, the device is paid off, and the monthly financing charge stops.
+* Save & Return: This option lowers your upfront monthly device payment in exchange for a Save & Return Credit.
+    * At the end of your 24-month term, you have two options:
+        1. Return the device (in good working condition) to settle the outstanding Save & Return Credit.
+        2. Keep the device and pay the Save & Return Credit amount (either in full or in installments).
+
+### Q15: My phone is having technical issues (calls dropping, no data). What should I try?
+
+A:
+
+1. Restart Your Phone: The simplest fix for most mobile issues.
+2. Check for Outages: Use the Rogers Network and Outage Hub to rule out local service issues.
+3. Check Data/Call Settings: Ensure your mobile data is on and that you don't have features like Airplane Mode or Do Not Disturb accidentally enabled.
+4. SIM Card: If you are seeing a "No SIM" or "SIM Error" message, try gently removing and re-inserting your SIM card.
+5. Online Troubleshooting: Rogers has extensive interactive device guides on their support website that walk you through step-by-step troubleshooting for almost any phone model and issue.
