@@ -48,15 +48,19 @@ function App() {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/agentic-rag', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userQuery, session_id: sessionId }),
-      });
+  const res = await fetch('https://agentic-rag-langgraph.onrender.com/agentic-rag', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: userQuery,
+      session_id: sessionId
+    }),
+  });
 
-      const data = await res.json();
+  const data = await res.json();
 
-      // normalize suggested follow-ups: always an array
+  // normalize suggested follow-ups: always an array
+
       const normalizeSuggested = (val) => {
         if (Array.isArray(val)) return val;
         if (typeof val === 'string') return [val];
@@ -87,16 +91,16 @@ function App() {
     }
   };
 
-  const resetChat = async () => {
-    setHistory([]);
-    setQuery('');
-    try {
-      await fetch(
-        `http://localhost:5000/reset-session?session_id=${sessionId}`,
-        {
-          method: 'DELETE',
-        }
-      );
+const resetChat = async () => {
+  setHistory([]);
+  setQuery('');
+  try {
+    await fetch(
+      `https://agentic-rag-langgraph.onrender.com/reset-session?session_id=${sessionId}`,
+      {
+        method: 'DELETE',
+      }
+    );
     } catch (err) {
       console.error('Failed to reset session:', err);
     }
