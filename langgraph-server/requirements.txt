@@ -9,3 +9,4 @@ langchain-text-splitters
 faiss-cpu
 
 python-dotenv
+gunicorn
