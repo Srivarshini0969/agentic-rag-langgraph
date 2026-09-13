@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.messages import BaseMessage
 
 from langchain_google_genai import (
     ChatGoogleGenerativeAI,
@@ -20,168 +20,382 @@ from langchain_community.chat_message_histories import SQLChatMessageHistory
 
 from langgraph.graph import StateGraph, END
 
-# -------------------------------------------------------
-# Environment
-# -------------------------------------------------------
+
+# =======================================================
+# ENVIRONMENT
+# =======================================================
+
 load_dotenv()
+
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
 if not GOOGLE_API_KEY:
     raise RuntimeError("Missing GOOGLE_API_KEY in environment.")
 
-# -------------------------------------------------------
-# Models
-# -------------------------------------------------------
+
+# =======================================================
+# GEMINI MODEL
+# =======================================================
+
 llm = ChatGoogleGenerativeAI(
-model="gemini-3.6-flash",
+    model="gemini-3.6-flash",
     temperature=0.2,
     google_api_key=GOOGLE_API_KEY,
 )
 
+
+# =======================================================
+# HELPER: GEMINI CONTENT -> STRING
+# =======================================================
+
+def content_to_text(content: Any) -> str:
+    """
+    Converts Gemini output into a normal Python string.
+
+    Gemini may return:
+    - string
+    - list of content blocks
+    - dictionaries containing text
+    - None
+    """
+
+    if content is None:
+        return ""
+
+    if isinstance(content, str):
+        return content
+
+    if isinstance(content, list):
+        parts = []
+
+        for item in content:
+
+            if isinstance(item, dict):
+                text = item.get("text")
+
+                if text is not None:
+                    parts.append(str(text))
+                else:
+                    parts.append(str(item))
+
+            else:
+                parts.append(str(item))
+
+        return " ".join(parts)
+
+    return str(content)
+
+
+# =======================================================
+# EMBEDDINGS
+# =======================================================
+
 embedder = GoogleGenerativeAIEmbeddings(
-    model="text-embedding-004",
+    model="models/gemini-embedding-001",
+    output_dimensionality=768,
     google_api_key=GOOGLE_API_KEY,
 )
 
-# -------------------------------------------------------
-# Vectorstore
-# -------------------------------------------------------
+
+# =======================================================
+# LOAD FAISS VECTORSTORE
+# =======================================================
+
 vectorstore = FAISS.load_local(
     folder_path="faiss_index",
     embeddings=embedder,
     allow_dangerous_deserialization=True,
 )
 
-# MMR retrieval
+
+# =======================================================
+# RETRIEVER
+# =======================================================
+
 retriever = vectorstore.as_retriever(
     search_type="mmr",
-    search_kwargs={"k": 8, "fetch_k": 24},
+    search_kwargs={
+        "k": 8,
+        "fetch_k": 24,
+    },
 )
 
-# -------------------------------------------------------
-# Domain Guardrail Prompt
-# -------------------------------------------------------
+
+# =======================================================
+# DOMAIN CHECK PROMPT
+# =======================================================
+
 DOMAIN_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            "Determine whether the user's question belongs to the Rogers Customer Support FAQ domain.\n"
-            "Valid topics include: billing, payments, account management, mobility, SIM/eSIM, roaming, "
-            "TV service, internet/Wi-Fi, technical troubleshooting, device issues, moving services, "
-            "and customer support contact info.\n\n"
-            "If the question fits these topics, answer ONLY: in-domain\n"
-            "Otherwise answer ONLY: out-of-domain"
+            """
+Determine whether the user's question belongs to the Rogers Customer
+Support FAQ domain.
+
+Valid topics include:
+- billing
+- payments
+- account management
+- mobility
+- SIM/eSIM
+- roaming
+- TV service
+- internet/Wi-Fi
+- technical troubleshooting
+- device issues
+- moving services
+- customer support contact information
+
+If the question fits these topics, answer ONLY:
+
+in-domain
+
+Otherwise answer ONLY:
+
+out-of-domain
+""",
         ),
-        ("user", "{query}")
+        ("user", "{query}"),
     ]
 )
 
 
+# =======================================================
+# DOMAIN CHECK
+# =======================================================
+
 def is_out_of_domain(query: str) -> bool:
-    resp = llm.invoke(DOMAIN_PROMPT.format_messages(query=query))
-    decision = (resp.content or "").strip().lower()
+
+    response = llm.invoke(
+        DOMAIN_PROMPT.format_messages(query=query)
+    )
+
+    decision = content_to_text(response.content).strip().lower()
+
     return decision == "out-of-domain"
 
 
-# -------------------------------------------------------
-# RAG Prompts
-# -------------------------------------------------------
+# =======================================================
+# RAG QUESTION PROMPT
+# =======================================================
+
 QUESTION_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            "You answer ONLY using the provided context. "
-            "If answer is not contained in the context, reply EXACTLY:\n"
-            "\"I could not find this information in the provided materials.\""
+            """
+You are a Rogers Customer Support assistant.
+
+Answer ONLY using the provided context.
+
+If the answer is not contained in the context, reply EXACTLY:
+
+I could not find this information in the provided materials.
+
+Do not invent information.
+Do not use outside knowledge.
+""",
         ),
-        MessagesPlaceholder("history"),
+
+        MessagesPlaceholder(variable_name="history"),
+
         (
             "user",
-            "Context:\n{context}\n\n"
-            "Question: {query}\n\n"
-            "Answer clearly:"
+            """
+Context:
+{context}
+
+Question:
+{query}
+
+Answer clearly:
+""",
         ),
     ]
 )
 
+
+# =======================================================
+# RAG CHAIN
+# =======================================================
+
 RAG_CHAIN = QUESTION_PROMPT | llm | StrOutputParser()
+
+
+# =======================================================
+# REFLECTION PROMPT
+# =======================================================
 
 REFLECTION_PROMPT = ChatPromptTemplate.from_messages(
     [
         (
             "system",
-            "Generate exactly TWO helpful follow-up questions based strictly on the answer and the context. "
-            "Avoid unrelated topics. Return ONLY a JSON array of strings or objects."
+            """
+Generate exactly TWO helpful follow-up questions based strictly
+on the answer and context.
+
+Avoid unrelated topics.
+
+Return ONLY a JSON array of strings.
+Example:
+
+[
+  "How can I update my billing information?",
+  "Where can I view my previous bills?"
+]
+""",
         ),
         (
             "user",
-            "Original Question:\n{query}\n\n"
-            "Answer:\n{answer}\n\n"
-            "Context:\n{context}"
+            """
+Original Question:
+{query}
+
+Answer:
+{answer}
+
+Context:
+{context}
+""",
         ),
     ]
 )
 
+
+# =======================================================
+# REASONING PROMPT
+# =======================================================
+
 REASONING_PROMPT = ChatPromptTemplate.from_messages(
     [
-        ("system", "Return ONLY 'sufficient' or 'insufficient'."),
-        ("user", "Question:\n{query}\n\nContext:\n{context}")
+        (
+            "system",
+            """
+Decide whether the provided context contains enough information
+to answer the user's question.
+
+Return ONLY one of:
+
+sufficient
+
+or
+
+insufficient
+""",
+        ),
+        (
+            "user",
+            """
+Question:
+{query}
+
+Context:
+{context}
+""",
+        ),
     ]
 )
 
 
-def should_retrieve_again(query: str, context: str) -> bool:
-    resp = llm.invoke(REASONING_PROMPT.format_messages(query=query, context=context))
-    decision = (resp.content or "").strip().lower()
+# =======================================================
+# REASONING
+# =======================================================
+
+def should_retrieve_again(
+    query: str,
+    context: str,
+) -> bool:
+
+    response = llm.invoke(
+        REASONING_PROMPT.format_messages(
+            query=query,
+            context=context,
+        )
+    )
+
+    decision = content_to_text(response.content).strip().lower()
+
     return decision == "insufficient"
 
 
-# -------------------------------------------------------
-# Graph State
-# -------------------------------------------------------
+# =======================================================
+# GRAPH STATE
+# =======================================================
+
 class GraphState(TypedDict, total=False):
+
     query: str
     context: str
     answer: str
+
     source_documents: List[Any]
+
     suggested_questions: List[str]
+
     needs_more: bool
-    history: List[Any]
+
+    history: List[BaseMessage]
 
 
-# -------------------------------------------------------
-# Domain Check Node
-# -------------------------------------------------------
-def domain_check_node(state: GraphState) -> GraphState:
+# =======================================================
+# DOMAIN CHECK NODE
+# =======================================================
+
+def domain_check_node(
+    state: GraphState,
+) -> GraphState:
+
     query = state["query"]
 
     if is_out_of_domain(query):
+
         return {
             **state,
+
             "answer": (
                 "I could not find this information in the provided materials. "
                 "This assistant only answers topics related to Rogers billing, "
-                "internet, TV service, mobility, device support, and technical troubleshooting."
+                "internet, TV service, mobility, device support, and technical "
+                "troubleshooting."
             ),
+
             "context": "",
+
             "source_documents": [],
+
             "suggested_questions": [],
+
             "needs_more": False,
         }
 
     return state
 
 
-# -------------------------------------------------------
-# Retrieval
-# -------------------------------------------------------
-def retrieve_facts(state: GraphState) -> GraphState:
+# =======================================================
+# FIRST RETRIEVAL
+# =======================================================
+
+def retrieve_facts(
+    state: GraphState,
+) -> GraphState:
+
     query = state["query"]
 
-    # MMR (no threshold filtering)
-    results = vectorstore.similarity_search_with_score(query, k=8)
-    docs = [doc for doc, score in results]
+    results = vectorstore.similarity_search_with_score(
+        query,
+        k=8,
+    )
 
-    context = "\n".join(doc.page_content for doc in docs)
+    docs = [
+        doc
+        for doc, score in results
+    ]
+
+    context = "\n\n".join(
+        doc.page_content
+        for doc in docs
+    )
 
     return {
         **state,
@@ -190,24 +404,72 @@ def retrieve_facts(state: GraphState) -> GraphState:
     }
 
 
-def reason_node(state: GraphState) -> GraphState:
+# =======================================================
+# REASONING NODE
+# =======================================================
+
+def reason_node(
+    state: GraphState,
+) -> GraphState:
+
     if not state.get("context"):
-        return {**state, "needs_more": False}
 
-    needs_more = should_retrieve_again(state["query"], state["context"])
-    return {**state, "needs_more": needs_more}
+        return {
+            **state,
+            "needs_more": False,
+        }
 
-
-def retrieve_again(state: GraphState) -> GraphState:
-    query = state["query"]
-    exp = vectorstore.as_retriever(
-        search_type="mmr",
-        search_kwargs={"k": 12, "fetch_k": 32},
+    needs_more = should_retrieve_again(
+        state["query"],
+        state["context"],
     )
-    extra = exp.invoke(query)
 
-    combined_docs = list({doc.page_content: doc for doc in state["source_documents"] + extra}.values())
-    new_context = "\n".join(doc.page_content for doc in combined_docs)
+    return {
+        **state,
+        "needs_more": needs_more,
+    }
+
+
+# =======================================================
+# SECOND RETRIEVAL
+# =======================================================
+
+def retrieve_again(
+    state: GraphState,
+) -> GraphState:
+
+    query = state["query"]
+
+    expanded_retriever = vectorstore.as_retriever(
+        search_type="mmr",
+        search_kwargs={
+            "k": 12,
+            "fetch_k": 32,
+        },
+    )
+
+    extra_docs = expanded_retriever.invoke(query)
+
+    previous_docs = state.get(
+        "source_documents",
+        [],
+    )
+
+    all_docs = previous_docs + extra_docs
+
+    unique_docs = {}
+
+    for doc in all_docs:
+        unique_docs[doc.page_content] = doc
+
+    combined_docs = list(
+        unique_docs.values()
+    )
+
+    new_context = "\n\n".join(
+        doc.page_content
+        for doc in combined_docs
+    )
 
     return {
         **state,
@@ -216,10 +478,14 @@ def retrieve_again(state: GraphState) -> GraphState:
     }
 
 
-# -------------------------------------------------------
-# Answer Generation
-# -------------------------------------------------------
-def generate_answer(state: GraphState) -> GraphState:
+# =======================================================
+# ANSWER GENERATION
+# =======================================================
+
+def generate_answer(
+    state: GraphState,
+) -> GraphState:
+
     answer = RAG_CHAIN.invoke(
         {
             "query": state["query"],
@@ -227,44 +493,71 @@ def generate_answer(state: GraphState) -> GraphState:
             "history": state.get("history", []),
         }
     )
-    return {**state, "answer": answer}
+
+    answer = content_to_text(answer).strip()
+
+    return {
+        **state,
+        "answer": answer,
+    }
 
 
-# -------------------------------------------------------
-# Follow-up Suggestions (Robust, Crash-proof)
-# -------------------------------------------------------
-def reflect_and_suggest(state: GraphState) -> GraphState:
-    """
-    Generate exactly two follow-up questions.
-    GUARANTEED: Only return strings → React never crashes.
-    """
+# =======================================================
+# FOLLOW-UP QUESTIONS
+# =======================================================
+
+def reflect_and_suggest(
+    state: GraphState,
+) -> GraphState:
+
     if not state.get("context"):
-        return {**state, "suggested_questions": []}
+
+        return {
+            **state,
+            "suggested_questions": [],
+        }
 
     response = llm.invoke(
         REFLECTION_PROMPT.format_messages(
             query=state["query"],
             answer=state.get("answer", ""),
-            context=state.get("context", "")
+            context=state.get("context", ""),
         )
     )
-    raw = (response.content or "").strip()
 
-    # Remove code fences
-    for token in ["```json", "```JSON", "```", "json", "JSON"]:
+    raw = content_to_text(response.content).strip()
+
+    # Remove possible markdown code fences
+    for token in [
+        "```json",
+        "```JSON",
+        "```",
+        "json",
+        "JSON",
+    ]:
         raw = raw.replace(token, "").strip()
 
-    # 1. Try JSON parsing
+    questions = []
+
     try:
+
         parsed = json.loads(raw)
 
-        # Case A: list of strings
-        if isinstance(parsed, list) and all(isinstance(x, str) for x in parsed):
-            q = parsed
+        # List of strings
+        if (
+            isinstance(parsed, list)
+            and all(isinstance(x, str) for x in parsed)
+        ):
 
-        # Case B: list of objects → extract fields
-        elif isinstance(parsed, list) and all(isinstance(x, dict) for x in parsed):
-            q = [
+            questions = parsed
+
+        # List of objects
+        elif (
+            isinstance(parsed, list)
+            and all(isinstance(x, dict) for x in parsed)
+        ):
+
+            questions = [
                 x.get("question")
                 or x.get("q")
                 or x.get("follow_up")
@@ -273,9 +566,10 @@ def reflect_and_suggest(state: GraphState) -> GraphState:
                 for x in parsed
             ]
 
-        # Case C: single object
+        # Single object
         elif isinstance(parsed, dict):
-            q = [
+
+            questions = [
                 parsed.get("question")
                 or parsed.get("q")
                 or parsed.get("follow_up")
@@ -284,74 +578,218 @@ def reflect_and_suggest(state: GraphState) -> GraphState:
             ]
 
         else:
-            q = [str(parsed)]
+
+            questions = [
+                str(parsed)
+            ]
 
     except Exception:
-        # 2. Fallback: split lines
-        q = [line.strip(" -•") for line in raw.split("\n") if line.strip()]
 
-    # Guarantee strings
-    q = [x if isinstance(x, str) else str(x) for x in q]
+        questions = [
+            line.strip(" -•")
+            for line in raw.split("\n")
+            if line.strip()
+        ]
+
+    # Convert everything to strings
+    questions = [
+        x if isinstance(x, str) else str(x)
+        for x in questions
+    ]
 
     # Guarantee two questions
-    if len(q) < 2:
-        q += ["Can you explain more?", "What else should I know?"]
+    if len(questions) < 2:
 
-    q = q[:2]
+        questions += [
+            "Can you explain more?",
+            "What else should I know?",
+        ]
 
-    return {**state, "suggested_questions": q}
+    questions = questions[:2]
+
+    return {
+        **state,
+        "suggested_questions": questions,
+    }
 
 
-# -------------------------------------------------------
-# Graph Construction
-# -------------------------------------------------------
+# =======================================================
+# LANGGRAPH CONSTRUCTION
+# =======================================================
+
 builder = StateGraph(GraphState)
 
-builder.add_node("domain_check", domain_check_node)
-builder.add_node("retrieve", retrieve_facts)
-builder.add_node("reason", reason_node)
-builder.add_node("retrieve_again", retrieve_again)
-builder.add_node("respond", generate_answer)
-builder.add_node("reflect", reflect_and_suggest)
 
-builder.set_entry_point("domain_check")
-
-# FIX: Exit early if out-of-domain
-builder.add_conditional_edges(
+builder.add_node(
     "domain_check",
-    lambda s: "END" if s.get("answer") else "retrieve",
-    {"retrieve": "retrieve", "END": END},
+    domain_check_node,
 )
 
-builder.add_edge("retrieve", "reason")
+builder.add_node(
+    "retrieve",
+    retrieve_facts,
+)
+
+builder.add_node(
+    "reason",
+    reason_node,
+)
+
+builder.add_node(
+    "retrieve_again",
+    retrieve_again,
+)
+
+builder.add_node(
+    "respond",
+    generate_answer,
+)
+
+builder.add_node(
+    "reflect",
+    reflect_and_suggest,
+)
+
+
+# =======================================================
+# ENTRY POINT
+# =======================================================
+
+builder.set_entry_point(
+    "domain_check"
+)
+
+
+# =======================================================
+# DOMAIN CHECK -> RETRIEVAL OR END
+# =======================================================
+
+builder.add_conditional_edges(
+    "domain_check",
+
+    lambda state:
+        "END"
+        if state.get("answer")
+        else "retrieve",
+
+    {
+        "retrieve": "retrieve",
+        "END": END,
+    },
+)
+
+
+# =======================================================
+# RETRIEVAL -> REASONING
+# =======================================================
+
+builder.add_edge(
+    "retrieve",
+    "reason",
+)
+
+
+# =======================================================
+# REASONING -> SECOND RETRIEVAL OR ANSWER
+# =======================================================
 
 builder.add_conditional_edges(
     "reason",
-    lambda s: "retrieve_again" if s.get("needs_more") else "respond",
-    {"retrieve_again": "retrieve_again", "respond": "respond"},
+
+    lambda state:
+        "retrieve_again"
+        if state.get("needs_more")
+        else "respond",
+
+    {
+        "retrieve_again": "retrieve_again",
+        "respond": "respond",
+    },
 )
 
-builder.add_edge("retrieve_again", "respond")
-builder.add_edge("respond", "reflect")
-builder.add_edge("reflect", END)
+
+# =======================================================
+# SECOND RETRIEVAL -> ANSWER
+# =======================================================
+
+builder.add_edge(
+    "retrieve_again",
+    "respond",
+)
+
+
+# =======================================================
+# ANSWER -> REFLECTION
+# =======================================================
+
+builder.add_edge(
+    "respond",
+    "reflect",
+)
+
+
+# =======================================================
+# REFLECTION -> END
+# =======================================================
+
+builder.add_edge(
+    "reflect",
+    END,
+)
+
+
+# =======================================================
+# COMPILE GRAPH
+# =======================================================
 
 graph = builder.compile()
 
 
-# -------------------------------------------------------
-# Memory Wrapper
-# -------------------------------------------------------
-def get_session_history(session_id: str) -> SQLChatMessageHistory:
+# =======================================================
+# SESSION HISTORY
+# =======================================================
+
+def get_session_history(
+    session_id: str,
+) -> SQLChatMessageHistory:
+
     return SQLChatMessageHistory(
         session_id=session_id,
         connection="sqlite:///memory.db",
     )
 
 
-runnable_with_history = RunnableWithMessageHistory(
-    graph,
-    get_session_history,
-    input_messages_key="query",
-    history_messages_key="history",
-    output_messages_key="answer",
-)
+# =======================================================
+# MAIN GRAPH RUNNER
+# =======================================================
+
+def run_agentic_rag(
+    query: str,
+    session_id: str = "default",
+) -> GraphState:
+
+    # Load previous conversation
+    history_store = get_session_history(
+        session_id
+    )
+
+    history = history_store.messages
+
+    # Run LangGraph
+    result = graph.invoke(
+        {
+            "query": query,
+            "history": history,
+        }
+    )
+
+    # Store current user question
+    history_store.add_user_message(query)
+
+    # Store generated answer
+    answer = result.get("answer", "")
+
+    if answer:
+        history_store.add_ai_message(answer)
+
+    return result

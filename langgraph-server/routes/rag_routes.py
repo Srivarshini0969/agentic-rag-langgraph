@@ -1,61 +1,68 @@
 # routes/rag_routes.py
 
-import os
 from flask import Blueprint, request, jsonify
-from dotenv import load_dotenv
-
-from langchain_community.chat_message_histories import SQLChatMessageHistory
-from langchain_core.messages import AIMessage
 
 from core.langgraph_runner import runnable_with_history
 
-load_dotenv()
 
 rag_api = Blueprint("rag_api", __name__)
 
 
 @rag_api.route("/agentic-rag", methods=["POST"])
-def rag_handler():
-    data = request.get_json() or {}
-
-    # FIX: strip() instead of trim()
-    query = (data.get("query") or "").strip()
-    session_id = data.get("session_id", "default-session")
-
-    if not query:
-        return jsonify({"error": "Missing 'query' in request body"}), 400
+def agentic_rag():
 
     try:
-        result = runnable_with_history.invoke(
-            {"query": query},
-            config={"configurable": {"session_id": session_id}},
-        )
+        data = request.get_json(silent=True)
 
-        return jsonify(
+        if not data:
+            return jsonify({
+                "error": "Request body must be valid JSON."
+            }), 400
+
+        query = data.get("query")
+        session_id = data.get("session_id", "default")
+
+        if not query:
+            return jsonify({
+                "error": "Missing 'query' in request body."
+            }), 400
+
+        if not isinstance(query, str):
+            query = str(query)
+
+        if not isinstance(session_id, str):
+            session_id = str(session_id)
+
+        result = runnable_with_history.invoke(
             {
-                "query": result.get("query"),
-                "facts": result.get("context", ""),
-                "answer": result.get("answer", ""),
-                "suggestedQuestions": result.get("suggested_questions", []),
+                "query": query
+            },
+            config={
+                "configurable": {
+                    "session_id": session_id
+                }
             }
         )
 
+        return jsonify({
+            "answer": result.get("answer", ""),
+            "suggested_questions": result.get(
+                "suggested_questions",
+                []
+            )
+        }), 200
+
     except Exception as e:
-        print("[Agentic RAG Error]", str(e))
-        return jsonify({"error": "Agentic RAG processing failed."}), 500
 
+        print("\n==============================")
+        print("❌ AGENTIC RAG ERROR")
+        print("==============================")
+        print(type(e).__name__)
+        print(str(e))
+        print("==============================\n")
 
-@rag_api.route("/reset-session", methods=["DELETE"])
-def reset_session():
-    session_id = request.args.get("session_id", "default-session")
-
-    try:
-        history = SQLChatMessageHistory(
-            session_id=session_id,
-            connection="sqlite:///memory.db",
-        )
-        history.clear()
-        return jsonify({"message": f"Session '{session_id}' reset successfully."})
-    except Exception as e:
-        print("[Session Reset Error]", str(e))
-        return jsonify({"error": "Failed to reset session."}), 500
+        return jsonify({
+            "error": "Agentic RAG processing failed.",
+            "details": str(e),
+            "type": type(e).__name__
+        }), 500
