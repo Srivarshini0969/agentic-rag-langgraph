@@ -2,8 +2,7 @@
 
 from flask import Blueprint, request, jsonify
 
-from core.langgraph_runner import runnable_with_history
-
+from core.langgraph_runner import run_agentic_rag
 
 rag_api = Blueprint("rag_api", __name__)
 
@@ -33,15 +32,19 @@ def agentic_rag():
         if not isinstance(session_id, str):
             session_id = str(session_id)
 
-        result = runnable_with_history.invoke(
-            {
-                "query": query
-            },
-            config={
-                "configurable": {
-                    "session_id": session_id
-                }
-            }
+        result = run_agentic_rag(
+            query=query,
+            session_id=session_id
+        )
+
+        return jsonify({
+            "answer": result.get("answer", ""),
+            "suggested_questions": result.get(
+                "suggested_questions",
+                []
+            ),
+            "session_id": session_id
+        }
         )
 
         return jsonify({
