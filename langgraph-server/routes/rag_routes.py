@@ -1,5 +1,3 @@
-# routes/rag_routes.py
-
 from flask import Blueprint, request, jsonify
 
 from core.langgraph_runner import run_agentic_rag
@@ -9,7 +7,6 @@ rag_api = Blueprint("rag_api", __name__)
 
 @rag_api.route("/agentic-rag", methods=["POST"])
 def agentic_rag():
-
     try:
         data = request.get_json(silent=True)
 
@@ -32,31 +29,30 @@ def agentic_rag():
         if not isinstance(session_id, str):
             session_id = str(session_id)
 
+        # Run Agentic RAG
         result = run_agentic_rag(
             query=query,
             session_id=session_id
         )
 
+        # Convert retrieved documents into simple strings
+        facts = []
+
+        for doc in result.get("source_documents", []):
+            if hasattr(doc, "page_content"):
+                facts.append(doc.page_content)
+
         return jsonify({
             "answer": result.get("answer", ""),
+            "facts": facts,
             "suggested_questions": result.get(
                 "suggested_questions",
                 []
             ),
             "session_id": session_id
-        }
-        )
-
-        return jsonify({
-            "answer": result.get("answer", ""),
-            "suggested_questions": result.get(
-                "suggested_questions",
-                []
-            )
         }), 200
 
     except Exception as e:
-
         print("\n==============================")
         print("❌ AGENTIC RAG ERROR")
         print("==============================")
