@@ -1,7 +1,9 @@
+# =======================================================
 # core/langgraph_runner.py
+# Agentic RAG using LangGraph + Gemini + FAISS
+# =======================================================
 
 import os
-import json
 from typing import TypedDict, List, Any
 
 from dotenv import load_dotenv
@@ -51,12 +53,6 @@ llm = ChatGoogleGenerativeAI(
 def content_to_text(content: Any) -> str:
     """
     Converts Gemini output into a normal Python string.
-
-    Gemini may return:
-    - string
-    - list of content blocks
-    - dictionaries containing text
-    - None
     """
 
     if content is None:
@@ -221,46 +217,6 @@ Answer clearly:
 # =======================================================
 
 RAG_CHAIN = QUESTION_PROMPT | llm | StrOutputParser()
-
-
-# =======================================================
-# REFLECTION PROMPT
-# =======================================================
-
-REFLECTION_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """
-Generate exactly TWO helpful follow-up questions based strictly
-on the answer and context.
-
-Avoid unrelated topics.
-
-Return ONLY a JSON array of strings.
-Example:
-
-[
-  "How can I update my billing information?",
-  "Where can I view my previous bills?"
-]
-""",
-        ),
-        (
-            "user",
-            """
-Original Question:
-{query}
-
-Answer:
-{answer}
-
-Context:
-{context}
-""",
-        ),
-    ]
-)
 
 
 # =======================================================
@@ -505,6 +461,9 @@ def generate_answer(
 # =======================================================
 # FOLLOW-UP QUESTIONS
 # =======================================================
+# These are predefined so we do NOT make another Gemini
+# request just to generate follow-up questions.
+# =======================================================
 
 def reflect_and_suggest(
     state: GraphState,
@@ -517,99 +476,12 @@ def reflect_and_suggest(
             "suggested_questions": [],
         }
 
-    response = llm.invoke(
-        REFLECTION_PROMPT.format_messages(
-            query=state["query"],
-            answer=state.get("answer", ""),
-            context=state.get("context", ""),
-        )
-    )
-
-    raw = content_to_text(response.content).strip()
-
-    # Remove possible markdown code fences
-    for token in [
-        "```json",
-        "```JSON",
-        "```",
-        "json",
-        "JSON",
-    ]:
-        raw = raw.replace(token, "").strip()
-
-    questions = []
-
-    try:
-
-        parsed = json.loads(raw)
-
-        # List of strings
-        if (
-            isinstance(parsed, list)
-            and all(isinstance(x, str) for x in parsed)
-        ):
-
-            questions = parsed
-
-        # List of objects
-        elif (
-            isinstance(parsed, list)
-            and all(isinstance(x, dict) for x in parsed)
-        ):
-
-            questions = [
-                x.get("question")
-                or x.get("q")
-                or x.get("follow_up")
-                or x.get("text")
-                or str(x)
-                for x in parsed
-            ]
-
-        # Single object
-        elif isinstance(parsed, dict):
-
-            questions = [
-                parsed.get("question")
-                or parsed.get("q")
-                or parsed.get("follow_up")
-                or parsed.get("text")
-                or str(parsed)
-            ]
-
-        else:
-
-            questions = [
-                str(parsed)
-            ]
-
-    except Exception:
-
-        questions = [
-            line.strip(" -•")
-            for line in raw.split("\n")
-            if line.strip()
-        ]
-
-    # Convert everything to strings
-    questions = [
-        x if isinstance(x, str) else str(x)
-        for x in questions
-    ]
-
-    # Guarantee two questions
-    if len(questions) < 2:
-
-        questions += [
-            "Can you explain more?",
-            "What else should I know?",
-        ]
-
-    questions = questions[:2]
-
     return {
         **state,
-        "suggested_questions": questions,
+        "suggested_questions": [
+            "Can you explain this in more detail?",
+            "What else should I know about this?",
+        ],
     }
 
 
