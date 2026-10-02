@@ -75,8 +75,7 @@ function App() {
           : data.facts?.split('\n').filter((f) => f.trim() !== '') || [],
         // backend returns "answer"
         response: data.response || data.answer || '',
-        suggestedQuestions: normalizeSuggested(data.suggested_questions),
-      };
+suggestedQuestions: normalizeSuggested(data.suggestedQuestions),      };
 
       // whether original or follow-up: just add a new turn
       setHistory((prev) => [...prev, newTurn]);
