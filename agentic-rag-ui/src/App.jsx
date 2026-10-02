@@ -75,7 +75,7 @@ function App() {
           : data.facts?.split('\n').filter((f) => f.trim() !== '') || [],
         // backend returns "answer"
         response: data.response || data.answer || '',
-        suggestedQuestions: normalizeSuggested(data.suggestedQuestions),
+        suggestedQuestions: normalizeSuggested(data.suggested_questions),
       };
 
       // whether original or follow-up: just add a new turn
