@@ -10,3 +10,4 @@ faiss-cpu
 
 python-dotenv
 gunicorn
+greenlet
