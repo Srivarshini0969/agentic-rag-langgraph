@@ -12,13 +12,13 @@ Run this script ONLY when:
 Usage:
     python build_vectorstore.py
 """
-
+import re
 import os
 
 from dotenv import load_dotenv
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
 
 
 # -------------------------------------------
@@ -63,16 +63,23 @@ def build_vectorstore():
             "❌ data/info.txt is empty."
         )
 
-    # Split text into chunks
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
-    )
+   # Split the FAQ document by complete question-and-answer sections
+faq_sections = re.split(r"(?=### Q\d+:)", text)
 
-    docs = splitter.create_documents([text])
+docs = []
 
-    print(f"📄 Split into {len(docs)} chunks.")
+for section in faq_sections:
+    section = section.strip()
 
+    if section and re.match(r"### Q\d+:", section):
+        docs.append(
+            Document(page_content=section)
+        )
+
+print(f"📄 Created {len(docs)} FAQ documents.")
+
+if not docs:
+    raise ValueError("No FAQ sections found in data/info.txt")
 
     # -------------------------------------------
     # Gemini Embeddings
