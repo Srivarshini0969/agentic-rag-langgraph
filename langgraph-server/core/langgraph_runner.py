@@ -343,6 +343,12 @@ def retrieve_facts(
         k=8,
     )
 
+    print("\n--- RETRIEVAL SCORES ---")
+    for doc, score in results:
+        print(f"Score: {score:.4f}")
+        print(f"Content: {doc.page_content[:200]}")
+        print("-" * 40)
+
     docs = [
         doc
         for doc, score in results
